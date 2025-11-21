@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doğru BCT Hesaplama Motoru</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --accent: #1f6feb;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --border: #30363d;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0b1016;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: 1px solid var(--accent);
+      border-color: var(--accent);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 15px;
+      box-shadow: 0 10px 30px rgba(31, 111, 235, 0.35);
+    }
+
+    button:hover {
+      filter: brightness(1.05);
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .result-card {
+      background: #0b1016;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .result-title {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .result-value {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .stacked {
+      display: grid;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header class="stacked">
+    <div>
+      <h1>Doğru BCT Hesaplama Motoru</h1>
+      <p class="subtitle">McKee standardı, doğru ECT ve yükseklik düzeltmesi ile tam kalibrasyon</p>
+    </div>
+    <div class="panel">
+      <div class="grid">
+        <div>
+          <label for="outerLiner">Dış Liner Gramajı (g/m²)</label>
+          <input id="outerLiner" type="number" min="0" value="175" />
+        </div>
+        <div>
+          <label for="middleLiner">Orta Liner Gramajı (g/m²)</label>
+          <input id="middleLiner" type="number" min="0" value="150" />
+          <p class="note">Çift dalga için ortadaki liner; tek dalgada 0 bırakabilirsiniz.</p>
+        </div>
+        <div>
+          <label for="innerLiner">İç Liner Gramajı (g/m²)</label>
+          <input id="innerLiner" type="number" min="0" value="175" />
+        </div>
+        <div>
+          <label for="medium1">Medium 1 Gramajı (g/m²)</label>
+          <input id="medium1" type="number" min="0" value="112" />
+        </div>
+        <div>
+          <label for="medium2">Medium 2 Gramajı (g/m²)</label>
+          <input id="medium2" type="number" min="0" value="112" />
+          <p class="note">BC ve EB dalga için ikinci medium gerekir; tek dalgada 0 bırakılabilir.</p>
+        </div>
+        <div>
+          <label for="flute">Dalga Tipi</label>
+          <select id="flute">
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="E">E</option>
+            <option value="BC">BC</option>
+            <option value="EB">EB</option>
+          </select>
+        </div>
+        <div>
+          <label for="perimeter">Perimetre (mm)</label>
+          <input id="perimeter" type="number" min="1" value="1600" />
+          <p class="note">Çevre ölçüsü; McKee formülünde kalınlıkla birlikte kullanılır.</p>
+        </div>
+        <div>
+          <label for="height">Kutu Yüksekliği (mm)</label>
+          <input id="height" type="number" min="0" value="300" />
+          <p class="note">Yükseklik düzeltmesi HF = 1 / (1 + H / (4 × Perimetre))</p>
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="calculate">Hesapla</button>
+        <div class="note" id="caliperInfo">Kalınlık: 2.7 mm (dalga B)</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel" style="margin-top: 16px;">
+    <div class="results">
+      <div class="result-card">
+        <div class="result-title">BCT (N)</div>
+        <div class="result-value" id="bctNewton">-</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">BCT (kg)</div>
+        <div class="result-value" id="bctKg">-</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">ECT (lb/in)</div>
+        <div class="result-value" id="ect">-</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">Yükseklik Faktörü</div>
+        <div class="result-value" id="heightFactor">-</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const TU_COEFFICIENTS = {
+      B: 1.35,
+      C: 1.44,
+      E: 1.27,
+    };
+
+    const CALIPERS = {
+      B: 2.7,
+      C: 4.0,
+      E: 1.3,
+      BC: 6.8,
+      EB: 3.8,
+    };
+
+    const K = 5.87;
+
+    const inputs = {
+      outerLiner: document.getElementById("outerLiner"),
+      middleLiner: document.getElementById("middleLiner"),
+      innerLiner: document.getElementById("innerLiner"),
+      medium1: document.getElementById("medium1"),
+      medium2: document.getElementById("medium2"),
+      flute: document.getElementById("flute"),
+      perimeter: document.getElementById("perimeter"),
+      height: document.getElementById("height"),
+    };
+
+    const outputs = {
+      bctNewton: document.getElementById("bctNewton"),
+      bctKg: document.getElementById("bctKg"),
+      ect: document.getElementById("ect"),
+      heightFactor: document.getElementById("heightFactor"),
+      caliperInfo: document.getElementById("caliperInfo"),
+    };
+
+    function parseValue(node) {
+      const value = parseFloat(node.value);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function getFluteConfiguration(flute) {
+      if (flute === "BC") {
+        return { caliper: CALIPERS.BC, mediumTUs: [TU_COEFFICIENTS.C, TU_COEFFICIENTS.B] };
+      }
+      if (flute === "EB") {
+        return { caliper: CALIPERS.EB, mediumTUs: [TU_COEFFICIENTS.E, TU_COEFFICIENTS.B] };
+      }
+      return { caliper: CALIPERS[flute], mediumTUs: [TU_COEFFICIENTS[flute]] };
+    }
+
+    function calculateRCT(grammage) {
+      return 0.67 * grammage;
+    }
+
+    function calculateCMT(grammage) {
+      return 0.70 * grammage;
+    }
+
+    function calculateECT(liners, mediums, flute) {
+      const { mediumTUs } = getFluteConfiguration(flute);
+      const linerContribution = liners.reduce((sum, grammage) => sum + calculateRCT(grammage), 0);
+
+      const mediumContribution = mediumTUs.reduce((sum, tu, index) => {
+        const grammage = mediums[index] ?? 0;
+        return sum + calculateCMT(grammage) * tu;
+      }, 0);
+
+      return linerContribution + mediumContribution;
+    }
+
+    function calculateBCT(ect, perimeter, caliper) {
+      return K * ect * Math.sqrt(perimeter * caliper);
+    }
+
+    function calculateHeightFactor(perimeter, height) {
+      if (perimeter <= 0) return 0;
+      return 1 / (1 + height / (perimeter * 4));
+    }
+
+    function formatNumber(value, digits = 2) {
+      return Number.isFinite(value) ? value.toFixed(digits) : "-";
+    }
+
+    function updateCaliperHint() {
+      const flute = inputs.flute.value;
+      const { caliper } = getFluteConfiguration(flute);
+      outputs.caliperInfo.textContent = `Kalınlık: ${caliper} mm (dalga ${flute})`;
+    }
+
+    function handleCalculate() {
+      const flute = inputs.flute.value;
+      const liners = [parseValue(inputs.outerLiner), parseValue(inputs.innerLiner)];
+      const middleLiner = parseValue(inputs.middleLiner);
+      if (middleLiner > 0) {
+        liners.splice(1, 0, middleLiner);
+      }
+
+      const mediums = [parseValue(inputs.medium1), parseValue(inputs.medium2)];
+      const perimeter = parseValue(inputs.perimeter);
+      const height = parseValue(inputs.height);
+
+      const ect = calculateECT(liners, mediums, flute);
+      const { caliper } = getFluteConfiguration(flute);
+      const bct = calculateBCT(ect, perimeter, caliper);
+      const heightFactor = calculateHeightFactor(perimeter, height);
+      const bctFinal = bct * heightFactor;
+      const bctKg = bctFinal / 9.81;
+
+      outputs.ect.textContent = formatNumber(ect);
+      outputs.heightFactor.textContent = formatNumber(heightFactor, 4);
+      outputs.bctNewton.textContent = formatNumber(bctFinal);
+      outputs.bctKg.textContent = formatNumber(bctKg);
+    }
+
+    inputs.flute.addEventListener("change", updateCaliperHint);
+    document.getElementById("calculate").addEventListener("click", handleCalculate);
+
+    updateCaliperHint();
+    handleCalculate();
+  </script>
+</body>
+</html>
